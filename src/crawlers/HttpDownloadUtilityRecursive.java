@@ -15,13 +15,14 @@ import org.jsoup.select.Elements;
 
 public class HttpDownloadUtilityRecursive {
 	private static final int MAX_DEPTH = 3;
-	private static final int PAGE_LIMIT = 1;
+	private static final int PAGE_LIMIT = 10;
+	private final String saveParentDir = "C:\\Users\\toszi\\Desktop\\Crawler";
 	int noOfPage = 0;
 	private HashSet<String> links;
 
 	public static void main(String[] args) {
 
-		new HttpDownloadUtilityRecursive().getPageLinks("http://www.mkyong.com/", 1);
+		new HttpDownloadUtilityRecursive().getPageLinks("http://www.mkyong.com/", 2);
 	}
 
 	public HttpDownloadUtilityRecursive() {
@@ -29,14 +30,8 @@ public class HttpDownloadUtilityRecursive {
 	}
 
 	public void getPageLinks(String URL, int depth) {
-		if ((!links.contains(URL) && (depth < MAX_DEPTH && noOfPage < PAGE_LIMIT))) {
+		if (!links.contains(URL) && depth < MAX_DEPTH && noOfPage < PAGE_LIMIT) {
 			System.out.println(">> Depth: " + depth + " [" + URL + "]");
-			try {
-				downloadFile(URL, "C:\\Users\\toszi\\Desktop\\Crawler\\newlocation");
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-			noOfPage++;
 			try {
 				links.add(URL);
 
@@ -44,7 +39,15 @@ public class HttpDownloadUtilityRecursive {
 				Elements linksOnPage = document.select("a[href]");
 				depth++;
 				for (Element page : linksOnPage) {
-					getPageLinks(page.attr("abs:href"), depth);
+					downloadFile(page.attr("abs:href"), saveParentDir);
+					noOfPage++;
+					if (noOfPage < PAGE_LIMIT) {
+						getPageLinks(page.attr("abs:href"), depth);
+					}
+					else {
+						System.out.println("Page limit reached.");
+						System.exit(0);
+					}
 				}
 			} catch (IOException e) {
 				System.err.println("For '" + URL + "': " + e.getMessage());
@@ -59,23 +62,24 @@ public class HttpDownloadUtilityRecursive {
 	 * https://stackoverflow.com/questions/26454916/download-the-entire-webpage
 	 * Downloads a file from a URL
 	 * 
-	 * @param fileURL
-	 *            HTTP URL of the file to be downloaded
+	 * @param stringURL
+	 *            HTTP URL of the site to be downloaded
 	 * @param saveParentDir
 	 *            path of the directory to save the file
 	 * @throws IOException
 	 */
-	public static void downloadFile(String fileURL, String saveParentDir) throws IOException {
-		if(fileURL.endsWith("/")) {
-			fileURL = fileURL.substring(0, fileURL.length() - 1);
+	public static void downloadFile(String stringURL, String saveParentDir) throws IOException {
+		if (stringURL.endsWith("/")) {
+			stringURL = stringURL.substring(0, stringURL.length() - 1);
 		}
-		URL url = new URL(fileURL);
+		URL url = new URL(stringURL);
 		HttpURLConnection httpConn = (HttpURLConnection) url.openConnection();
 		int responseCode = httpConn.getResponseCode();
 
 		// always check HTTP response code first
 		if (responseCode == HttpURLConnection.HTTP_OK) {
 			String fileName = "";
+			String dirSubPath = "";
 			String disposition = httpConn.getHeaderField("Content-Disposition");
 			String contentType = httpConn.getContentType();
 			int contentLength = httpConn.getContentLength();
@@ -88,20 +92,26 @@ public class HttpDownloadUtilityRecursive {
 				}
 			} else {
 				// extracts file name from URL
-				fileName = (fileURL.substring(fileURL.lastIndexOf("/") + 1, fileURL.length()) + (fileURL.endsWith(".html")?"":".html"));
+				fileName = (stringURL.substring(stringURL.lastIndexOf("/") + 1, stringURL.length())
+						+ (stringURL.endsWith(".html") ? "" : ".html"));
 			}
 
 			System.out.println("Content-Type = " + contentType);
 			System.out.println("Content-Disposition = " + disposition);
 			System.out.println("Content-Length = " + contentLength);
-			System.out.println("fileName = " + fileName);
+
+			dirSubPath = url.getPath().toString();
+			dirSubPath = (dirSubPath.substring(0, dirSubPath.lastIndexOf("/") + 1));
+			dirSubPath.replace("/", File.separator);
+
+			(new File(saveParentDir + dirSubPath)).mkdirs();
 
 			// opens input stream from the HTTP connection
 			InputStream inputStream = httpConn.getInputStream();
-			String saveFilePath = saveParentDir + url.getHost() + File.separator + fileName;
+			String fileNameWithPath = saveParentDir + dirSubPath + File.separator + fileName;
 
 			// opens an output stream to save into file
-			FileOutputStream outputStream = new FileOutputStream(saveFilePath);
+			FileOutputStream outputStream = new FileOutputStream(fileNameWithPath);
 
 			int bytesRead = -1;
 			byte[] buffer = new byte[BUFFER_SIZE];
@@ -112,6 +122,7 @@ public class HttpDownloadUtilityRecursive {
 			outputStream.close();
 			inputStream.close();
 
+			System.out.println("File name = " + fileNameWithPath);
 			System.out.println("File downloaded");
 		} else {
 			System.out.println("No file to download. Server replied HTTP code: " + responseCode);
