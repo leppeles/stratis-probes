@@ -2,6 +2,10 @@ package common;
 
 import java.util.List;
 import java.util.ListIterator;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
@@ -20,11 +24,8 @@ public class Test {
 
 	public static void main(String[] args) throws Exception {
 
-		String saveParentDir = "C:\\Users\\toszi\\Desktop\\Crawler";
-		System.out.println(File.separator);
-		
-		String dirSubPath = "////////";
-		dirSubPath.replace("/", File.pathSeparator);
-		System.out.println(dirSubPath);
+        Logger logger = LoggerFactory.getLogger(Test.class);
+        logger.info("This is how you configure Java Logging with SLF4J");
+
 	}
 }

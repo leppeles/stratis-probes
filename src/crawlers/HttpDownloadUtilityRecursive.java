@@ -8,6 +8,8 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.HashSet;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -19,6 +21,9 @@ public class HttpDownloadUtilityRecursive {
 	private final String saveParentDir = "C:\\Users\\toszi\\Desktop\\Crawler";
 	int noOfPage = 0;
 	private HashSet<String> links;
+	
+	/** SLF4J Logger */
+	private final static Logger log = LoggerFactory.getLogger(HttpDownloadUtilityRecursive.class);
 
 	public static void main(String[] args) {
 
@@ -31,7 +36,7 @@ public class HttpDownloadUtilityRecursive {
 
 	public void getPageLinks(String URL, int depth) {
 		if (!links.contains(URL) && depth < MAX_DEPTH && noOfPage < PAGE_LIMIT) {
-			System.out.println(">> Depth: " + depth + " [" + URL + "]");
+			log.info(">> Depth: " + depth + " [" + URL + "]");
 			try {
 				links.add(URL);
 
@@ -45,7 +50,7 @@ public class HttpDownloadUtilityRecursive {
 						getPageLinks(page.attr("abs:href"), depth);
 					}
 					else {
-						System.out.println("Page limit reached.");
+						log.info("Page limit reached.");
 						System.exit(0);
 					}
 				}
@@ -96,9 +101,9 @@ public class HttpDownloadUtilityRecursive {
 						+ (stringURL.endsWith(".html") ? "" : ".html"));
 			}
 
-			System.out.println("Content-Type = " + contentType);
-			System.out.println("Content-Disposition = " + disposition);
-			System.out.println("Content-Length = " + contentLength);
+			log.info("Content-Type = " + contentType);
+			log.info("Content-Disposition = " + disposition);
+			log.info("Content-Length = " + contentLength);
 
 			dirSubPath = url.getPath().toString();
 			dirSubPath = (dirSubPath.substring(0, dirSubPath.lastIndexOf("/") + 1));
@@ -122,10 +127,10 @@ public class HttpDownloadUtilityRecursive {
 			outputStream.close();
 			inputStream.close();
 
-			System.out.println("File name = " + fileNameWithPath);
-			System.out.println("File downloaded");
+			log.info("File name = " + fileNameWithPath);
+			log.info("File downloaded");
 		} else {
-			System.out.println("No file to download. Server replied HTTP code: " + responseCode);
+			log.info("No file to download. Server replied HTTP code: " + responseCode);
 		}
 		httpConn.disconnect();
 	}
