@@ -27,7 +27,8 @@ public class HttpDownloadUtilityRecursive {
 
 	public static void main(String[] args) {
 
-		new HttpDownloadUtilityRecursive().getPageLinks("http://www.mkyong.com/", 2);
+		log.info("~~~~~~~~~~~~~~~~~~~~HTTP crawler started~~~~~~~~~~~~~~~~~~~~");
+		new HttpDownloadUtilityRecursive().getPageLinks("https://stackoverflow.com/questions/9510932/java-package-vs-folder-structure-what-is-the-difference", 1);
 	}
 
 	public HttpDownloadUtilityRecursive() {
@@ -51,6 +52,7 @@ public class HttpDownloadUtilityRecursive {
 					}
 					else {
 						log.info("Page limit reached.");
+						log.info("~~~~~~~~~~~~~~~~~~~~HTTP crawler ended~~~~~~~~~~~~~~~~~~~~");
 						System.exit(0);
 					}
 				}
@@ -130,7 +132,7 @@ public class HttpDownloadUtilityRecursive {
 			log.info("File name = " + fileNameWithPath);
 			log.info("File downloaded");
 		} else {
-			log.info("No file to download. Server replied HTTP code: " + responseCode);
+			log.error("No file to download. Server replied HTTP code: " + responseCode);
 		}
 		httpConn.disconnect();
 	}
