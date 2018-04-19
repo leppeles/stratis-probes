@@ -1,11 +1,15 @@
 package crawlers;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashSet;
 
 import org.slf4j.Logger;
@@ -21,14 +25,18 @@ public class HttpDownloadUtilityRecursive {
 	private final String saveParentDir = "C:\\Users\\toszi\\Desktop\\Crawler";
 	int noOfPage = 0;
 	private HashSet<String> links;
-	
+	private static final int BUFFER_SIZE = 4096;
+	private static final SimpleDateFormat dateformat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+
 	/** SLF4J Logger */
 	private final static Logger log = LoggerFactory.getLogger(HttpDownloadUtilityRecursive.class);
 
 	public static void main(String[] args) {
 
 		log.info("~~~~~~~~~~~~~~~~~~~~HTTP crawler started~~~~~~~~~~~~~~~~~~~~");
-		new HttpDownloadUtilityRecursive().getPageLinks("https://stackoverflow.com/questions/9510932/java-package-vs-folder-structure-what-is-the-difference", 1);
+		new HttpDownloadUtilityRecursive().getPageLinks(
+				"https://www.investinblockchain.com",
+				2);
 	}
 
 	public HttpDownloadUtilityRecursive() {
@@ -49,8 +57,7 @@ public class HttpDownloadUtilityRecursive {
 					noOfPage++;
 					if (noOfPage < PAGE_LIMIT) {
 						getPageLinks(page.attr("abs:href"), depth);
-					}
-					else {
+					} else {
 						log.info("Page limit reached.");
 						log.info("~~~~~~~~~~~~~~~~~~~~HTTP crawler ended~~~~~~~~~~~~~~~~~~~~");
 						System.exit(0);
@@ -59,10 +66,9 @@ public class HttpDownloadUtilityRecursive {
 			} catch (IOException e) {
 				System.err.println("For '" + URL + "': " + e.getMessage());
 			}
+			log.info("~~~~~~~~~~~~~~~~~~~~HTTP crawler ended~~~~~~~~~~~~~~~~~~~~");
 		}
 	}
-
-	private static final int BUFFER_SIZE = 4096;
 
 	/**
 	 * source:
@@ -85,26 +91,19 @@ public class HttpDownloadUtilityRecursive {
 
 		// always check HTTP response code first
 		if (responseCode == HttpURLConnection.HTTP_OK) {
+			StringBuffer logContent = new StringBuffer();
+			logContent.append(dateformat.format(new Date()) + " - Run started\n");
+
 			String fileName = "";
 			String dirSubPath = "";
-			String disposition = httpConn.getHeaderField("Content-Disposition");
 			String contentType = httpConn.getContentType();
 			int contentLength = httpConn.getContentLength();
 
-			if (disposition != null) {
-				// extracts file name from header field
-				int index = disposition.indexOf("filename=");
-				if (index > 0) {
-					fileName = disposition.substring(index + 10, disposition.length() - 1);
-				}
-			} else {
 				// extracts file name from URL
 				fileName = (stringURL.substring(stringURL.lastIndexOf("/") + 1, stringURL.length())
 						+ (stringURL.endsWith(".html") ? "" : ".html"));
-			}
 
 			log.info("Content-Type = " + contentType);
-			log.info("Content-Disposition = " + disposition);
 			log.info("Content-Length = " + contentLength);
 
 			dirSubPath = url.getPath().toString();
@@ -129,6 +128,20 @@ public class HttpDownloadUtilityRecursive {
 			outputStream.close();
 			inputStream.close();
 
+			logContent.append("\n" + dateformat.format(new Date()) + " - Run terminated");
+			File logFile = new File(fileNameWithPath + ".log");
+			// if the log file doesn't exists, then create it
+			try {
+				if (!logFile.exists()) {
+					logFile.createNewFile();
+				}
+				FileWriter fw = new FileWriter(logFile.getAbsoluteFile());
+				BufferedWriter bw = new BufferedWriter(fw);
+				bw.write(logContent.toString());
+				bw.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 			log.info("File name = " + fileNameWithPath);
 			log.info("File downloaded");
 		} else {
