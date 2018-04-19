@@ -34,9 +34,7 @@ public class HttpDownloadUtilityRecursive {
 	public static void main(String[] args) {
 
 		log.info("~~~~~~~~~~~~~~~~~~~~HTTP crawler started~~~~~~~~~~~~~~~~~~~~");
-		new HttpDownloadUtilityRecursive().getPageLinks(
-				"https://www.investinblockchain.com",
-				2);
+		new HttpDownloadUtilityRecursive().getPageLinks("https://www.investinblockchain.com", 2);
 	}
 
 	public HttpDownloadUtilityRecursive() {
@@ -99,9 +97,9 @@ public class HttpDownloadUtilityRecursive {
 			String contentType = httpConn.getContentType();
 			int contentLength = httpConn.getContentLength();
 
-				// extracts file name from URL
-				fileName = (stringURL.substring(stringURL.lastIndexOf("/") + 1, stringURL.length())
-						+ (stringURL.endsWith(".html") ? "" : ".html"));
+			// extracts file name from URL
+			fileName = (stringURL.substring(stringURL.lastIndexOf("/") + 1, stringURL.length())
+					+ (stringURL.endsWith(".html") ? "" : ".html"));
 
 			log.info("Content-Type = " + contentType);
 			log.info("Content-Length = " + contentLength);
@@ -116,7 +114,7 @@ public class HttpDownloadUtilityRecursive {
 			InputStream inputStream = httpConn.getInputStream();
 			String fileNameWithPath = saveParentDir + dirSubPath + File.separator + fileName;
 
-			// opens an output stream to save into file
+			// opens an output stream to save into file to predetermined way
 			FileOutputStream outputStream = new FileOutputStream(fileNameWithPath);
 
 			int bytesRead = -1;
