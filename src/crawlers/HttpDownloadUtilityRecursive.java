@@ -1,11 +1,10 @@
 package crawlers;
 
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.RandomAccessFile;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.SimpleDateFormat;
@@ -21,10 +20,10 @@ import org.jsoup.select.Elements;
 
 public class HttpDownloadUtilityRecursive {
 	private static final int MAX_DEPTH = 3;
-	private static final int PAGE_LIMIT = 10;
+	private static final int PAGE_LIMIT = 100;
 	private final String saveParentDir = "C:\\Users\\toszi\\Desktop\\Crawler";
 	int noOfPage = 0;
-	private HashSet<String> links;
+	private HashSet<String> visitedLinks;
 	private static final int BUFFER_SIZE = 4096;
 	private static final SimpleDateFormat dateformat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
 
@@ -34,27 +33,37 @@ public class HttpDownloadUtilityRecursive {
 	public static void main(String[] args) {
 
 		log.info("~~~~~~~~~~~~~~~~~~~~HTTP crawler started~~~~~~~~~~~~~~~~~~~~");
-		new HttpDownloadUtilityRecursive().getPageLinks("https://www.investinblockchain.com", 2);
+		new HttpDownloadUtilityRecursive().getPagesFromWeb("https://www.investinblockchain.com", 2);
 	}
 
 	public HttpDownloadUtilityRecursive() {
-		links = new HashSet<>();
+		visitedLinks = new HashSet<>();
 	}
 
-	public void getPageLinks(String URL, int depth) {
-		if (!links.contains(URL) && depth < MAX_DEPTH && noOfPage < PAGE_LIMIT) {
+	private void getPagesFromWeb(String URL, int depth) {
+		if (!visitedLinks.contains(URL) && depth < MAX_DEPTH && noOfPage < PAGE_LIMIT) {
 			log.info(">> Depth: " + depth + " [" + URL + "]");
 			try {
-				links.add(URL);
-
+				visitedLinks.add(URL);
 				Document document = Jsoup.connect(URL).get();
-				Elements linksOnPage = document.select("a[href]");
+				// get all links on given page, not distinct
+				Elements allLinksOnPage = document.select("a[href]");
 				depth++;
-				for (Element page : linksOnPage) {
-					downloadFile(page.attr("abs:href"), saveParentDir);
+				// get distinct links
+				HashSet<String> uniqueLinksOnPage =  new HashSet<>();
+				for (Element element : allLinksOnPage) {
+					
+					String currentLink = element.attr("abs:href");
+					if (!uniqueLinksOnPage.contains(currentLink)) {
+						uniqueLinksOnPage.add(currentLink);
+					}
+				}
+				for (String page : uniqueLinksOnPage) {
+
+					downloadFile(page, saveParentDir);
 					noOfPage++;
 					if (noOfPage < PAGE_LIMIT) {
-						getPageLinks(page.attr("abs:href"), depth);
+						getPagesFromWeb(page, depth);
 					} else {
 						log.info("Page limit reached.");
 						log.info("~~~~~~~~~~~~~~~~~~~~HTTP crawler ended~~~~~~~~~~~~~~~~~~~~");
@@ -79,7 +88,7 @@ public class HttpDownloadUtilityRecursive {
 	 *            path of the directory to save the file
 	 * @throws IOException
 	 */
-	public static void downloadFile(String stringURL, String saveParentDir) throws IOException {
+	private static void downloadFile(String stringURL, String saveParentDir) throws IOException {
 		if (stringURL.endsWith("/")) {
 			stringURL = stringURL.substring(0, stringURL.length() - 1);
 		}
@@ -99,7 +108,7 @@ public class HttpDownloadUtilityRecursive {
 
 			// extracts file name from URL
 			fileName = (stringURL.substring(stringURL.lastIndexOf("/") + 1, stringURL.length())
-					+ (stringURL.endsWith(".html") ? "" : ".html"));
+					+ (stringURL.endsWith(".html") ? "" : ".html")).replaceAll("[\\/:*?<|>]", "_");
 
 			log.info("Content-Type = " + contentType);
 			log.info("Content-Length = " + contentLength);
@@ -114,7 +123,7 @@ public class HttpDownloadUtilityRecursive {
 			InputStream inputStream = httpConn.getInputStream();
 			String fileNameWithPath = saveParentDir + dirSubPath + File.separator + fileName;
 
-			// opens an output stream to save into file to predetermined way
+			// opens an output stream to save into file
 			FileOutputStream outputStream = new FileOutputStream(fileNameWithPath);
 
 			int bytesRead = -1;
@@ -126,20 +135,8 @@ public class HttpDownloadUtilityRecursive {
 			outputStream.close();
 			inputStream.close();
 
-			logContent.append("\n" + dateformat.format(new Date()) + " - Run terminated");
-			File logFile = new File(fileNameWithPath + ".log");
-			// if the log file doesn't exists, then create it
-			try {
-				if (!logFile.exists()) {
-					logFile.createNewFile();
-				}
-				FileWriter fw = new FileWriter(logFile.getAbsoluteFile());
-				BufferedWriter bw = new BufferedWriter(fw);
-				bw.write(logContent.toString());
-				bw.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+			logContent.append("" + dateformat.format(new Date()) + " - Run terminated\n");
+			createLogForFile(fileNameWithPath, logContent);
 			log.info("File name = " + fileNameWithPath);
 			log.info("File downloaded");
 		} else {
@@ -148,4 +145,20 @@ public class HttpDownloadUtilityRecursive {
 		httpConn.disconnect();
 	}
 
+	private static void createLogForFile(String fileNameWithPath, StringBuffer logContent) {
+
+		try {
+			// then append to the top of the file
+			RandomAccessFile file = new RandomAccessFile(new File(fileNameWithPath + ".log"), "rws");
+			byte[] text = new byte[(int) file.length()];
+			file.readFully(text);
+			file.seek(0);
+			file.writeBytes(logContent.toString() + "\n");
+			file.write(text);
+			file.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+	}
 }
